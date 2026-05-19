@@ -13,13 +13,16 @@ struct StackNode {
 };
 
 struct Stack {
-    StackNode* top = nullptr;
+    StackNode* top = nullptr; //Top of stack
 
+    //Push a value onto the Stack
     void push(string v) {
         StackNode* n = new StackNode(v);
         n->next = top;
         top = n;
     }
+    
+    //Pop and return the top value
     string pop() {
         string v = top->data;
         StackNode* t = top;
@@ -41,14 +44,17 @@ struct QueueNode {
 };
 
 struct Queue {
-    QueueNode* head = nullptr;
-    QueueNode* tail = nullptr;
-
+    QueueNode* head = nullptr; //Front of queue
+    QueueNode* tail = nullptr; //Back of queue
+    
+    // Add value to back of queue
     void enqueue(string v) {
         QueueNode* n = new QueueNode(v);
         if (!tail) head = tail = n;
         else tail->next = n, tail = n;
     }
+    
+    // Remove and return front value
     string dequeue() {
         string v = head->data;
         QueueNode* t = head;
