@@ -1,63 +1,216 @@
 #include <iostream>
-#include <stack>
-#include <map>
 #include <string>
+#include <cctype>
+using namespace std;
 
-struct TreeNode {
-    std::string value;
-    TreeNode* left;
-    TreeNode* right;
-
-    TreeNode(std::string v) : value(v), left(nullptr), right(nullptr) {}
+/* ============================
+   LINKED LIST STACK (string)
+   ============================ */
+struct StackNode {
+    string data;
+    StackNode* next;
+    StackNode(string d) : data(d), next(nullptr) {}
 };
 
-int main() 
-{
-    // operator precedence
-    std::map<char, int> precedence = {
-        {'^', 3},
-        {'*', 2},
-        {'/', 2},
-        {'+', 1},
-        {'-', 1}
-    };
+struct Stack {
+    StackNode* top = nullptr;
 
-    // right associativity
-    std::map<char, bool> right_assoc = {
-        {'^', true},
-        {'*', false},
-        {'/', false},
-        {'+', false},
-        {'-', false}
-    };
+    void push(string v) {
+        StackNode* n = new StackNode(v);
+        n->next = top;
+        top = n;
+    }
+    string pop() {
+        string v = top->data;
+        StackNode* t = top;
+        top = top->next;
+        delete t;
+        return v;
+    }
+    string peek() { return top ? top->data : ""; }
+    bool empty() { return top == nullptr; }
+};
 
-    // placeholder: your postfix expression goes here
-    std::string postfix = "";  
+/* ============================
+   LINKED LIST QUEUE (string)
+   ============================ */
+struct QueueNode {
+    string data;
+    QueueNode* next;
+    QueueNode(string d) : data(d), next(nullptr) {}
+};
 
-    std::stack<TreeNode*> stack;
+struct Queue {
+    QueueNode* head = nullptr;
+    QueueNode* tail = nullptr;
 
-    // loop through postfix tokens
-    for (char token : postfix)
-    {
-        if (isdigit(token)) {
-            TreeNode* node = new TreeNode(std::string(1, token));
-            stack.push(node);
-        }
-        else { // operator
-            TreeNode* right = stack.top(); stack.pop();
-            TreeNode* left  = stack.top(); stack.pop();
+    void enqueue(string v) {
+        QueueNode* n = new QueueNode(v);
+        if (!tail) head = tail = n;
+        else tail->next = n, tail = n;
+    }
+    string dequeue() {
+        string v = head->data;
+        QueueNode* t = head;
+        head = head->next;
+        if (!head) tail = nullptr;
+        delete t;
+        return v;
+    }
+    bool empty() { return head == nullptr; }
+};
 
-            TreeNode* node = new TreeNode(std::string(1, token));
-            node->left = left;
-            node->right = right;
+/* ============================
+   BINARY TREE NODE
+   ============================ */
+struct TreeNode {
+    string value;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(string v) : value(v), left(nullptr), right(nullptr) {}
+};
 
-            stack.push(node);
+/* ============================
+   SHUNTING YARD HELPERS
+   ============================ */
+int prec(string op) {
+    if (op == "^") return 3;
+    if (op == "*" || op == "/") return 2;
+    if (op == "+" || op == "-") return 1;
+    return 0;
+}
+bool rightAssoc(string op) { return op == "^"; }
+
+/* ============================
+   SHUNTING YARD (INFIX → POSTFIX)
+   ============================ */
+Queue shuntingYard(string in) {
+    Stack ops;
+    Queue out;
+
+    string tok;
+    for (int i = 0; i <= in.size(); i++) {
+        if (i == in.size() || in[i] == ' ') {
+            if (tok != "") {
+                if (isdigit(tok[0])) out.enqueue(tok);
+                else if (tok == "(") ops.push(tok);
+                else if (tok == ")") {
+                    while (ops.peek() != "(") out.enqueue(ops.pop());
+                    ops.pop();
+                }
+                else {
+                    while (!ops.empty() &&
+                           prec(ops.peek()) > 0 &&
+                           ((!rightAssoc(tok) && prec(ops.peek()) >= prec(tok)) ||
+                            ( rightAssoc(tok) && prec(ops.peek()) >  prec(tok))))
+                        out.enqueue(ops.pop());
+                    ops.push(tok);
+                }
+            }
+            tok = "";
+        } else tok += in[i];
+    }
+
+    while (!ops.empty()) out.enqueue(ops.pop());
+    return out;
+}
+
+/* ============================
+   STACK FOR TREE NODES
+   ============================ */
+struct TreeStackNode {
+    TreeNode* data;
+    TreeStackNode* next;
+    TreeStackNode(TreeNode* d) : data(d), next(nullptr) {}
+};
+
+struct TreeStack {
+    TreeStackNode* top = nullptr;
+
+    void push(TreeNode* n) {
+        TreeStackNode* t = new TreeStackNode(n);
+        t->next = top;
+        top = t;
+    }
+    TreeNode* pop() {
+        TreeNode* v = top->data;
+        TreeStackNode* t = top;
+        top = top->next;
+        delete t;
+        return v;
+    }
+    bool empty() { return top == nullptr; }
+};
+
+/* ============================
+   BUILD EXPRESSION TREE
+   ============================ */
+TreeNode* buildTree(Queue post) {
+    TreeStack st;
+
+    while (!post.empty()) {
+        string t = post.dequeue();
+
+        if (isdigit(t[0])) {
+            st.push(new TreeNode(t));
+        } else {
+            TreeNode* r = st.pop();
+            TreeNode* l = st.pop();
+            TreeNode* op = new TreeNode(t);
+            op->left = l;
+            op->right = r;
+            st.push(op);
         }
     }
 
-    TreeNode* root = nullptr;
-    if (!stack.empty())
-        root = stack.top();
+    return st.pop();
+}
 
-    return 0;
+/* ============================
+   TREE TRAVERSALS
+   ============================ */
+void printPrefix(TreeNode* r) {
+    if (!r) return;
+    cout << r->value << " ";
+    printPrefix(r->left);
+    printPrefix(r->right);
+}
+
+void printInfix(TreeNode* r) {
+    if (!r) return;
+    if (r->left) cout << "( ";
+    printInfix(r->left);
+    cout << r->value << " ";
+    printInfix(r->right);
+    if (r->right) cout << ") ";
+}
+
+void printPostfix(TreeNode* r) {
+    if (!r) return;
+    printPostfix(r->left);
+    printPostfix(r->right);
+    cout << r->value << " ";
+}
+
+/* ============================
+   MAIN
+   ============================ */
+int main() {
+    cout << "Enter infix (space-separated):\n";
+    string infix;
+    getline(cin, infix);
+
+    Queue postfix = shuntingYard(infix);
+
+    cout << "\nPostfix: ";
+    Queue temp = postfix;
+    while (!temp.empty()) cout << temp.dequeue() << " ";
+    cout << "\n";
+
+    TreeNode* root = buildTree(postfix);
+
+    cout << "\nPrefix: ";  printPrefix(root);
+    cout << "\nInfix: ";   printInfix(root);
+    cout << "\nPostfix: "; printPostfix(root);
+    cout << "\n";
 }
