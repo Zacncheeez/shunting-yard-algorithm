@@ -208,11 +208,7 @@ int main() {
 
     Queue postfix = shuntingYard(infix);
 
-    cout << "\nPostfix: ";
-    Queue temp = postfix;
-    while (!temp.empty()) cout << temp.dequeue() << " ";
-    cout << "\n";
-
+    // Build tree directly from postfix queue
     TreeNode* root = buildTree(postfix);
 
     cout << "\nPrefix: ";  printPrefix(root);
